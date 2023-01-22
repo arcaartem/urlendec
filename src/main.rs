@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
 use log::debug;
 use std::fs::File;
@@ -22,7 +22,7 @@ struct Cli {
     output_file: String,
 }
 
-fn main() -> io::Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
     let cli = Cli::parse();
@@ -34,29 +34,30 @@ fn main() -> io::Result<()> {
 
     if cli.input_string.is_empty() {
         debug!("processing multi-line input");
-        encode_decode_multiline(&cli);
+        encode_decode_multiline(&cli)?;
     } else {
         debug!("processing single-line input");
-        encode_decode_singleline(&cli);
+        encode_decode_singleline(&cli)?;
     }
 
     Ok(())
 }
 
-fn encode_decode_singleline(cli: &Cli) {
+fn encode_decode_singleline(cli: &Cli) -> Result<()>{
     debug!("encode/decode single-line input");
-    let mut writer = create_writer(&cli.output_file);
+    let mut writer = create_writer(&cli.output_file)?;
 
-    let output = encode_decode(&cli, &cli.input_string);
+    let output = encode_decode(&cli, &cli.input_string)?;
 
-    writer.write_fmt(format_args!("{}", output)).unwrap();
+    writer.write_fmt(format_args!("{}", output))?;
+    Ok(())
 }
 
-fn encode_decode_multiline(cli: &Cli) {
+fn encode_decode_multiline(cli: &Cli) -> Result<()> {
     debug!("encode/decode multi-line input");
-    let reader = create_reader(&cli.input_file).expect("Cannot create reader");
+    let reader = create_reader(&cli.input_file)?;
 
-    let mut writer = create_writer(&cli.output_file);
+    let mut writer = create_writer(&cli.output_file)?;
 
     let mut lines = reader.lines();
 
@@ -67,22 +68,23 @@ fn encode_decode_multiline(cli: &Cli) {
             break;
         }
 
-        let output = encode_decode(&cli, &last_input);
+        let output = encode_decode(&cli, &last_input)?;
 
-        writer.write_fmt(format_args!("{}\n", output)).unwrap();
+        writer.write_fmt(format_args!("{}\n", output))?;
     }
+    Ok(())
 }
 
-fn encode_decode(cli: &Cli, input: &String) -> String {
+fn encode_decode(cli: &Cli, input: &String) -> Result<String> {
     debug!("encode/decode input");
     let result: String = match cli.decode {
-        true => urlencoding::decode(&input).expect("UTF-8").to_string(),
+        true => urlencoding::decode(&input)?.to_string(),
         false => urlencoding::encode(&input).to_string(),
     };
-    result
+    Ok(result)
 }
 
-fn create_writer(output_file: &String) -> Box<dyn Write> {
+fn create_writer(output_file: &String) -> Result<Box<dyn Write>> {
     debug!("creating writer for output file '{}'", output_file);
     let writer: Box<dyn Write>;
 
@@ -95,10 +97,10 @@ fn create_writer(output_file: &String) -> Box<dyn Write> {
                 .write(true)
                 .truncate(true)
                 .open(output_file)
-                .unwrap(),
+                .with_context(|| format!("could not create output file `{}`", output_file))?,
         ));
     }
-    writer
+    Ok(writer)
 }
 
 fn create_reader(input_file: &String) -> Result<Box<dyn BufRead>> {
@@ -109,7 +111,8 @@ fn create_reader(input_file: &String) -> Result<Box<dyn BufRead>> {
         reader = Box::new(BufReader::new(io::stdin().lock()));
     } else {
         let file =
-            File::open(input_file).expect(format!("could not read file `{}`", input_file).as_str());
+            File::open(input_file)
+            .with_context(|| format!("could not read file `{}`", input_file))?;
         reader = Box::new(BufReader::new(file));
     };
     Ok(reader)
