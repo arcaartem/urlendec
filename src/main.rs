@@ -1,10 +1,15 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use log::debug;
-use std::fs::File;
-use std::fs::OpenOptions;
+use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use urlencoding;
+
+enum InputType {
+    File,
+    String,
+    Stdio,
+}
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -32,63 +37,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         cli.decode, cli.input_string, cli.input_file, cli.output_file
     );
 
-    if cli.input_string.is_empty() {
-        debug!("processing multi-line input");
-        encode_decode_multiline(&cli)?;
-    } else {
-        debug!("processing single-line input");
-        encode_decode_singleline(&cli)?;
-    }
+    let reader = create_reader(&cli)?;
+    let mut writer = create_writer(&cli)?;
 
-    Ok(())
-}
-
-fn encode_decode_singleline(cli: &Cli) -> Result<()>{
-    debug!("encode/decode single-line input");
-    let mut writer = create_writer(&cli.output_file)?;
-
-    let output = encode_decode(&cli, &cli.input_string)?;
-
-    writer.write_fmt(format_args!("{}", output))?;
-    Ok(())
-}
-
-fn encode_decode_multiline(cli: &Cli) -> Result<()> {
-    debug!("encode/decode multi-line input");
-    let reader = create_reader(&cli.input_file)?;
-
-    let mut writer = create_writer(&cli.output_file)?;
-
-    let mut lines = reader.lines();
-
-    while let Some(line) = lines.next() {
-        let last_input = line.unwrap();
-
-        if last_input.len() == 0 {
-            break;
-        }
-
-        let output = encode_decode(&cli, &last_input)?;
+    for line in reader.lines() {
+        let output = encode_decode(&cli, &line?)?;
 
         writer.write_fmt(format_args!("{}\n", output))?;
     }
+    writer.flush()?;
+
     Ok(())
 }
 
 fn encode_decode(cli: &Cli, input: &String) -> Result<String> {
-    debug!("encode/decode input");
-    let result: String = match cli.decode {
-        true => urlencoding::decode(&input)?.to_string(),
-        false => urlencoding::encode(&input).to_string(),
-    };
-    Ok(result)
+    Ok(if cli.decode {
+        debug!("decode input: '{}'", input);
+        urlencoding::decode(&input)?.to_string()
+    } else {
+        debug!("encode input: '{}'", input);
+        urlencoding::encode(&input).to_string()
+    })
 }
 
-fn create_writer(output_file: &String) -> Result<Box<dyn Write>> {
-    debug!("creating writer for output file '{}'", output_file);
+fn create_writer(cli: &Cli) -> Result<Box<dyn Write>> {
+    debug!("creating writer for output file '{}'", cli.output_file);
     let writer: Box<dyn Write>;
 
-    if output_file == "-" {
+    if cli.output_file == "-" {
         writer = Box::new(BufWriter::new(io::stdout().lock()));
     } else {
         writer = Box::new(BufWriter::new(
@@ -96,24 +72,32 @@ fn create_writer(output_file: &String) -> Result<Box<dyn Write>> {
                 .create(true)
                 .write(true)
                 .truncate(true)
-                .open(output_file)
-                .with_context(|| format!("could not create output file `{}`", output_file))?,
+                .open(&cli.output_file)
+                .with_context(|| format!("could not create output file `{}`", cli.output_file))?,
         ));
     }
     Ok(writer)
 }
 
-fn create_reader(input_file: &String) -> Result<Box<dyn BufRead>> {
-    debug!("creating reader for input file '{}'", input_file);
-    let reader: Box<dyn BufRead>;
+fn create_reader(cli: &Cli) -> Result<Box<dyn BufRead + '_>> {
+    Ok(match get_input_type(&cli) {
+        InputType::File => Box::new(BufReader::new(
+            File::open(&cli.input_file)
+                .with_context(|| format!("could not read file `{}`", cli.input_file))?,
+        )),
+        InputType::Stdio => Box::new(BufReader::new(io::stdin().lock())),
+        InputType::String => Box::new(BufReader::new(cli.input_string.as_bytes())),
+    })
+}
 
-    if input_file == "-" {
-        reader = Box::new(BufReader::new(io::stdin().lock()));
+fn get_input_type(cli: &Cli) -> InputType {
+    if cli.input_string.is_empty() {
+        if cli.input_file == "-" {
+            InputType::Stdio
+        } else {
+            InputType::File
+        }
     } else {
-        let file =
-            File::open(input_file)
-            .with_context(|| format!("could not read file `{}`", input_file))?;
-        reader = Box::new(BufReader::new(file));
-    };
-    Ok(reader)
+        InputType::String
+    }
 }

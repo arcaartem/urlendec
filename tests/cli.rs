@@ -1,6 +1,6 @@
 use assert_cmd::Command;
 use assert_fs::prelude::*; // Add methods on commands
-use predicates::prelude::*; // Used for writing assertions
+use predicates::prelude::*;
 
 #[test]
 fn input_file_does_not_exist() -> Result<(), Box<dyn std::error::Error>> {
@@ -24,7 +24,7 @@ fn input_file_exists() -> Result<(), Box<dyn std::error::Error>> {
     cmd.arg("-i").arg(file.path());
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("Hello%2C%20world%21\nTest123\n"));
+        .stdout(predicate::eq("Hello%2C%20world%21\nTest123\n"));
 
     Ok(())
 }
@@ -36,7 +36,7 @@ fn input_from_stdin() -> Result<(), Box<dyn std::error::Error>> {
     cmd.write_stdin("Hello, world!\nTest123\n");
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("Hello%2C%20world%21\nTest123\n"));
+        .stdout(predicate::eq("Hello%2C%20world%21\nTest123\n"));
 
     Ok(())
 }
@@ -48,22 +48,28 @@ fn input_from_string() -> Result<(), Box<dyn std::error::Error>> {
     cmd.arg("-s").arg("Hello, world!");
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("Hello%2C%20world%21"));
+        .stdout(predicate::eq("Hello%2C%20world%21\n"));
 
     Ok(())
 }
 
 #[test]
 fn output_to_file() -> Result<(), Box<dyn std::error::Error>> {
-    let file = assert_fs::NamedTempFile::new("sample_output.txt")?;
+    let temp_dir = assert_fs::TempDir::new()?;
 
-    let mut cmd = Command::cargo_bin("urlencode")?;
+    let mut cmd = Command::cargo_bin("urlencode").unwrap();
 
-    cmd.arg("-s").arg("Hello, world!");
-    cmd.arg("-o").arg(file.path());
-    cmd.assert().success();
+    cmd.arg("-s")
+        .arg("Hello, world!")
+        .arg("-o")
+        .arg(format!("{}/test_output.txt", temp_dir.path().display()))
+        .assert()
+        .success();
 
-    file.assert("Hello%2C%20world%21");
+    temp_dir
+        .child("test_output.txt")
+        .assert(predicate::path::exists())
+        .assert("Hello%2C%20world%21\n");
 
     Ok(())
 }
@@ -76,7 +82,7 @@ fn decode_from_string() -> Result<(), Box<dyn std::error::Error>> {
     cmd.arg("-d");
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("Hello, world!"));
+        .stdout(predicate::eq("Hello, world!\n"));
 
     Ok(())
 }
