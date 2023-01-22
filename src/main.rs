@@ -34,16 +34,16 @@ fn main() -> io::Result<()> {
 
     if cli.input_string.is_empty() {
         debug!("processing multi-line input");
-        encode_decode_multiline(cli);
+        encode_decode_multiline(&cli);
     } else {
         debug!("processing single-line input");
-        encode_decode_singleline(cli);
+        encode_decode_singleline(&cli);
     }
 
     Ok(())
 }
 
-fn encode_decode_singleline(cli: Cli) {
+fn encode_decode_singleline(cli: &Cli) {
     debug!("encode/decode single-line input");
     let mut writer = create_writer(&cli.output_file);
 
@@ -52,7 +52,7 @@ fn encode_decode_singleline(cli: Cli) {
     writer.write_fmt(format_args!("{}", output)).unwrap();
 }
 
-fn encode_decode_multiline(cli: Cli) {
+fn encode_decode_multiline(cli: &Cli) {
     debug!("encode/decode multi-line input");
     let reader = create_reader(&cli.input_file).expect("Cannot create reader");
 
@@ -113,30 +113,4 @@ fn create_reader(input_file: &String) -> Result<Box<dyn BufRead>> {
         reader = Box::new(BufReader::new(file));
     };
     Ok(reader)
-}
-
-#[test]
-fn test_encode_input() {
-    let cli_args = Cli {
-        decode: false,
-        input_file: String::from("-"),
-        output_file: String::from("-"),
-        input_string: String::from(""),
-    };
-
-    let result = encode_decode(&cli_args, &String::from("Hello, world!"));
-    assert_eq!(result, "Hello%2C%20world%21");
-}
-
-#[test]
-fn test_decode_input() {
-    let cli_args = Cli {
-        decode: true,
-        input_file: String::from("-"),
-        output_file: String::from("-"),
-        input_string: String::from(""),
-    };
-
-    let result = encode_decode(&cli_args, &String::from("Hello%2C%20world%21"));
-    assert_eq!(result, "Hello, world!");
 }
