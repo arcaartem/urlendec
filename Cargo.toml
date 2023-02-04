@@ -1,10 +1,10 @@
 [package]
-name = "urlencode"
+name = "urlendec"
 description = "A command-line url encoder/decoder"
 version = "0.1.0"
 edition = "2021"
-homepage = "https://github.com/cobalt-forge/urlencode"
-repository = "https://github.com/cobalt-forge/urlencode"
+homepage = "https://github.com/cobalt-forge/urlendec"
+repository = "https://github.com/cobalt-forge/urlendec"
 license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

@@ -4,7 +4,7 @@ use predicates::prelude::*;
 
 #[test]
 fn input_file_does_not_exist() -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = Command::cargo_bin("urlencode")?;
+    let mut cmd = Command::cargo_bin("urlendec")?;
 
     cmd.arg("-i").arg("test/file/doesnt/exist");
     cmd.assert()
@@ -19,7 +19,7 @@ fn input_file_exists() -> Result<(), Box<dyn std::error::Error>> {
     let file = assert_fs::NamedTempFile::new("sample_input.txt")?;
     file.write_str("Hello, world!\nTest123\n")?;
 
-    let mut cmd = Command::cargo_bin("urlencode")?;
+    let mut cmd = Command::cargo_bin("urlendec")?;
 
     cmd.arg("-i").arg(file.path());
     cmd.assert()
@@ -31,7 +31,7 @@ fn input_file_exists() -> Result<(), Box<dyn std::error::Error>> {
 
 #[test]
 fn input_from_stdin() -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = Command::cargo_bin("urlencode")?;
+    let mut cmd = Command::cargo_bin("urlendec")?;
 
     cmd.write_stdin("Hello, world!\nTest123\n");
     cmd.assert()
@@ -43,7 +43,7 @@ fn input_from_stdin() -> Result<(), Box<dyn std::error::Error>> {
 
 #[test]
 fn input_from_string() -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = Command::cargo_bin("urlencode")?;
+    let mut cmd = Command::cargo_bin("urlendec")?;
 
     cmd.arg("-s").arg("Hello, world!");
     cmd.assert()
@@ -57,7 +57,7 @@ fn input_from_string() -> Result<(), Box<dyn std::error::Error>> {
 fn output_to_file() -> Result<(), Box<dyn std::error::Error>> {
     let temp_dir = assert_fs::TempDir::new()?;
 
-    let mut cmd = Command::cargo_bin("urlencode").unwrap();
+    let mut cmd = Command::cargo_bin("urlendec").unwrap();
 
     cmd.arg("-s")
         .arg("Hello, world!")
@@ -76,7 +76,7 @@ fn output_to_file() -> Result<(), Box<dyn std::error::Error>> {
 
 #[test]
 fn decode_from_string() -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = Command::cargo_bin("urlencode")?;
+    let mut cmd = Command::cargo_bin("urlendec")?;
 
     cmd.arg("-s").arg("Hello%2C%20world%21");
     cmd.arg("-d");
