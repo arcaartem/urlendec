@@ -1,0 +1,10 @@
+#!/bin/sh
+
+cargo clean
+cargo build --release --target x86_64-apple-darwin --target aarch64-apple-darwin
+cargo test
+
+mkdir -p released/
+rm -rf released/*
+zip released/urlendec-x86_64-apple-darwin.zip ./target/x86_64-apple-darwin/release/urlendec
+zip released/urlendec-aarch64-apple-darwin.zip ./target/aarch64-apple-darwin/release/urlendec
