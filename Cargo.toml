@@ -1,7 +1,7 @@
 [package]
 name = "urlendec"
 description = "A command-line url encoder/decoder"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 homepage = "https://github.com/cobalt-forge/urlendec"
 repository = "https://github.com/cobalt-forge/urlendec"
