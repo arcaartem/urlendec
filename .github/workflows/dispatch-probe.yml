@@ -1,0 +1,16 @@
+name: Dispatch Probe
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag'
+        required: true
+        type: string
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "got tag $TAG"
+        env:
+          TAG: ${{ inputs.tag }}
