@@ -86,3 +86,15 @@ fn decode_from_string() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+#[test]
+fn decode_invalid_percent_encoding_errors() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = Command::cargo_bin("urlendec")?;
+
+    cmd.arg("-d").arg("-s").arg("%ZZ");
+    cmd.assert()
+        .failure()
+        .stderr(predicate::str::contains("invalid percent-encoding"));
+
+    Ok(())
+}

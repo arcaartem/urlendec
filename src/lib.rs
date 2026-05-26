@@ -9,9 +9,37 @@ pub enum InputType {
     Stdio,
 }
 
+fn validate_percent_encoding(input: &str) -> Result<()> {
+    let bytes = input.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' {
+            if i + 2 >= bytes.len() {
+                anyhow::bail!(
+                    "invalid percent-encoding: incomplete escape sequence at end of input"
+                );
+            }
+            let h1 = bytes[i + 1];
+            let h2 = bytes[i + 2];
+            if !h1.is_ascii_hexdigit() || !h2.is_ascii_hexdigit() {
+                anyhow::bail!(
+                    "invalid percent-encoding: '%{}{}' is not a valid escape sequence",
+                    h1 as char,
+                    h2 as char
+                );
+            }
+            i += 3;
+        } else {
+            i += 1;
+        }
+    }
+    Ok(())
+}
+
 pub fn encode_decode(decode: bool, input: &str) -> Result<String> {
     Ok(if decode {
         debug!("decode input: '{}'", input);
+        validate_percent_encoding(input)?;
         urlencoding::decode(input)?.to_string()
     } else {
         debug!("encode input: '{}'", input);
@@ -83,6 +111,62 @@ mod tests {
         // %80 decodes to 0x80, which is not valid UTF-8 on its own
         let result = encode_decode(true, "%80");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn decode_rejects_invalid_hex() {
+        let result = encode_decode(true, "%ZZ");
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("invalid percent-encoding"));
+    }
+
+    #[test]
+    fn decode_rejects_lone_percent() {
+        let result = encode_decode(true, "abc%");
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("invalid percent-encoding"));
+    }
+
+    #[test]
+    fn decode_rejects_partial_escape() {
+        let result = encode_decode(true, "%4");
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("invalid percent-encoding"));
+    }
+
+    #[test]
+    fn decode_rejects_mixed_invalid() {
+        let result = encode_decode(true, "%4Z");
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("invalid percent-encoding"));
+    }
+
+    #[test]
+    fn decode_accepts_valid_escapes() {
+        assert_eq!(encode_decode(true, "%41").unwrap(), "A");
+        assert_eq!(encode_decode(true, "%2C").unwrap(), ",");
+    }
+
+    #[test]
+    fn decode_accepts_lowercase_hex() {
+        assert_eq!(encode_decode(true, "%2c").unwrap(), ",");
+    }
+
+    #[test]
+    fn decode_accepts_no_percent() {
+        assert_eq!(encode_decode(true, "hello").unwrap(), "hello");
     }
 
     #[test]

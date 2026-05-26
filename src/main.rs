@@ -5,17 +5,21 @@ use std::io::BufRead;
 use urlendec::{create_reader, create_writer, encode_decode};
 
 #[derive(Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about = "Encode or decode URL percent-encoded strings, line by line", long_about = None)]
 struct Cli {
+    /// Decode the input instead of encoding
     #[arg(short, long, default_value = "false")]
     decode: bool,
 
+    /// Encode or decode the provided string (mutually exclusive with --input-file)
     #[arg(short = 's', long = "string", default_value = "", group = "input")]
     input_string: String,
 
+    /// Read input from the given file (default: stdin)
     #[arg(short, long, default_value = "-", group = "input")]
     input_file: String,
 
+    /// Write output to the given file (default: stdout)
     #[arg(short, long, default_value = "-")]
     output_file: String,
 }
