@@ -3,18 +3,22 @@ name = "urlendec"
 description = "A command-line url encoder/decoder"
 version = "0.1.1"
 edition = "2021"
-homepage = "https://github.com/cobalt-forge/urlendec"
-repository = "https://github.com/cobalt-forge/urlendec"
+authors = ["Arca Artem"]
+homepage = "https://github.com/arcaartem/urlendec"
+repository = "https://github.com/arcaartem/urlendec"
 license = "MIT"
+readme = "README.md"
+keywords = ["url", "encoding", "decoding", "cli", "urlencode"]
+categories = ["command-line-utilities"]
 
 [dependencies]
-clap = { version = "4.0", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }
 anyhow = "1.0"
-urlencoding = "2.0"
-env_logger = "0.10.0"
-log = "0.4.17"
+urlencoding = "2.1"
+env_logger = "0.11"
+log = "0.4"
 
 [dev-dependencies]
-assert_cmd = "2.0.8"
-predicates = "2.1.5"
-assert_fs = "1.0.10"
+assert_cmd = "2.0"
+predicates = "3.1"
+assert_fs = "1.1"

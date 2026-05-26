@@ -10,24 +10,32 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-for-macos:
-    runs-on: macos-latest
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            targets: "aarch64-apple-darwin x86_64-apple-darwin"
+            build_args: "--target x86_64-apple-darwin --target aarch64-apple-darwin"
+          - os: ubuntu-latest
+            targets: ""
+            build_args: ""
+    runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Add targets
+      if: matrix.targets != ''
       run: |
-        rustup target add aarch64-apple-darwin
-        rustup target add x86_64-apple-darwin
+        for t in ${{ matrix.targets }}; do
+          rustup target add $t
+        done
     - name: Build
-      run: cargo build --target x86_64-apple-darwin --target aarch64-apple-darwin
+      run: cargo build ${{ matrix.build_args }}
     - name: Run tests
       run: cargo test
-  build-for-linux:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Build
-      run: cargo build
-    - name: Run tests
-      run: cargo test
-
+    - name: Check formatting
+      if: matrix.os == 'ubuntu-latest'
+      run: cargo fmt -- --check
+    - name: Clippy
+      if: matrix.os == 'ubuntu-latest'
+      run: cargo clippy -- -D warnings
