@@ -3,6 +3,12 @@ on:
   push:
     tags:
     - '*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release (e.g. v0.2.0)'
+        required: true
+        type: string
 
 jobs:
   build:
@@ -18,6 +24,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.tag || github.ref }}
     - name: Add target
       run: rustup target add ${{ matrix.target }}
     - name: Build
@@ -26,7 +34,7 @@ jobs:
       run: cargo test
     - name: Set env
       run: |
-        echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+        echo "RELEASE_VERSION=${{ inputs.tag || github.ref_name }}" >> $GITHUB_ENV
         echo "BIN_NAME=urlendec" >> $GITHUB_ENV
     - name: Zip artifacts
       run: |
@@ -43,6 +51,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
       - name: Install pandoc
         run: sudo apt-get update && sudo apt-get install -y pandoc
       - name: Generate manpage
@@ -66,4 +76,5 @@ jobs:
         path: artifacts/
     - uses: ncipollo/release-action@v1
       with:
-        artifacts: "artifacts/**/*.zip"
+        tag: ${{ inputs.tag || github.ref_name }}
+        artifacts: "artifacts/**/*.zip,artifacts/**/urlendec.1"
